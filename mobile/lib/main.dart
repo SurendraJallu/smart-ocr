@@ -19,7 +19,7 @@ Future<void> main() async {
     await Firebase.initializeApp();
     firebaseReady = true;
   } catch (_) {
-    // Offline OCR remains available without native Firebase configuration.
+    // Firebase-dependent server OCR and document saving remain unavailable until configured.
   }
   runApp(SmartOcrApp(firebaseReady: firebaseReady));
 }
