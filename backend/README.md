@@ -48,7 +48,7 @@ Install Tesseract on the backend host and ensure the executable is available on 
 - Ubuntu/Debian: `sudo apt-get update && sudo apt-get install -y tesseract-ocr tesseract-ocr-eng`
 - Verify: `tesseract --version` and `tesseract --list-langs`
 
-If the executable is not named `tesseract` or is outside PATH, set `SMART_OCR_OCR_TESSERACT_COMMAND`? The Spring property is `smart-ocr.ocr.tesseract-command`; configure it with `SMART_OCR_OCR_TESSERACT_COMMAND` only if your deployment maps that environment variable, or override the property directly.
+If the executable is not named `tesseract` or is outside PATH, set the environment variable `SMART_OCR_OCR_TESSERACT_COMMAND` to its executable path.
 
 Endpoint:
 
