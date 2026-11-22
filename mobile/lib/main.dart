@@ -235,7 +235,7 @@ class _HomePageState extends State<HomePage> {
               decoration: const InputDecoration(labelText: 'Document title', border: OutlineInputBorder())),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
-            value: _documentType,
+            initialValue: _documentType,
             decoration: const InputDecoration(labelText: 'Document type', border: OutlineInputBorder()),
             items: const [
               DropdownMenuItem(value: 'GENERAL', child: Text('General')),
