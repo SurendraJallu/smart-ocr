@@ -1,38 +1,49 @@
-# Mobile application
+# Smart OCR mobile app
 
-This directory is reserved for the Flutter application targeting Android and iOS from one Dart codebase.
+Flutter application for Android and iOS. English OCR runs on-device using Google ML Kit.
 
-## Local prerequisites
+## Requirements
 
-- Flutter stable SDK (use the version selected by the team)
-- Dart SDK bundled with Flutter
-- Android Studio and Android SDK for Android builds
-- macOS and Xcode for iOS builds
+- Flutter stable SDK and bundled Dart SDK
+- Android Studio / Android SDK for Android
+- macOS with Xcode for iOS builds
 
-## Generate platform scaffolding
-
-From the repository root, after installing Flutter:
+## Install and run
 
 ```bash
-flutter create --platforms=android,ios --org com.smartocr mobile
 cd mobile
-flutter doctor
+flutter create --platforms=android,ios --org com.smartocr .
 flutter pub get
+flutter run
 ```
 
-If this directory already contains Flutter project files, do not run `flutter create` over them.
+If platform folders already exist, do not regenerate them. For a physical Android device, pass the reachable API address:
 
-## Planned client modules
+```bash
+flutter run --dart-define=SMART_OCR_API_URL=http://YOUR_COMPUTER_LAN_IP:8080/api/v1
+```
 
-- Authentication and session management
-- Camera/gallery document import
-- Image preview, crop, rotate, and enhancement
-- On-device English OCR
-- Document classification and field extraction suggestions
-- Review/edit/confirm screen
-- User-scoped document history
-- PDF and spreadsheet export
+The default API URL `http://10.0.2.2:8080/api/v1` is for the Android emulator. iOS simulator can use `http://127.0.0.1:8080/api/v1`. Use HTTPS for deployed environments.
 
-## Configuration
+## Firebase Authentication setup
 
-Do not commit Firebase configuration files or signing credentials. Add environment-specific setup instructions once the Firebase project and application identifiers are selected.
+Create a Firebase project and register the Android and iOS application identifiers. Configure native Firebase files using FlutterFire:
+
+```bash
+dart pub global activate flutterfire_cli
+flutterfire configure
+```
+
+Add generated `google-services.json` and `GoogleService-Info.plist` locally. Do not commit signing keys or service-account secrets. Enable Email/Password sign-in in Firebase Authentication and configure backend `FIREBASE_PROJECT_ID` and `FIREBASE_ISSUER_URI` to the same project.
+
+Offline image OCR works without Firebase configuration. Saving to the REST API requires a signed-in Firebase user and a backend configured for that same Firebase project.
+
+## Current workflow
+
+1. Capture a document with the camera or select an image from the gallery.
+2. Run English OCR locally on the device.
+3. Review and edit the recognized text.
+4. Select a document type and title.
+5. Sign in and save reviewed text to the authenticated user's backend record.
+
+PDF import, multipage scanning, crop/rotate controls, document history UI, export, cloud image storage and document-specific field extraction are follow-on modules.
