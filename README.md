@@ -5,7 +5,7 @@ Cross-platform document capture and OCR application for Android and iOS.
 ## Planned stack
 
 - **Mobile:** Flutter (Dart)
-- **Backend:** Java 21 + Spring Boot
+- **Backend:** Java 25 (LTS) + Spring Boot 3.5.16
 - **Database:** PostgreSQL
 - **Authentication:** Firebase Authentication
 - **File storage:** Firebase Storage
@@ -14,12 +14,10 @@ Cross-platform document capture and OCR application for Android and iOS.
 
 ## Repository layout
 
-```text
-mobile/       Flutter application
-backend/      Spring Boot REST API
-infra/        Local development infrastructure
-docs/         Architecture and development documentation
-```
+    mobile/       Flutter application
+    backend/      Spring Boot REST API
+    infra/        Local development infrastructure
+    docs/         Architecture and development documentation
 
 ## Getting started
 
@@ -32,8 +30,8 @@ The repository is currently being initialized. See:
 
 ## Development workflow
 
-- `main`: stable releases
-- `develop`: integration branch
-- `features/*`: isolated feature work, merged into `develop` through pull requests
+- main: stable releases
+- develop: integration branch
+- features/*: isolated feature work, merged into develop through pull requests
 
 Do not commit credentials, Firebase service-account files, signing keys, or real personal documents.
