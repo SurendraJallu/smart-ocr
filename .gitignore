@@ -1,0 +1,50 @@
+# Flutter / Dart
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.metadata
+coverage/
+*.iml
+
+# Android
+**/android/.gradle/
+**/android/local.properties
+**/android/key.properties
+**/android/*.jks
+**/android/*.keystore
+
+# iOS / macOS
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Flutter/ephemeral/
+**/ios/Flutter/Generated.xcconfig
+**/ios/Runner/GeneratedPluginRegistrant.*
+DerivedData/
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+
+# Java / Maven / IDE
+**/target/
+.idea/
+.vscode/
+*.class
+*.log
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*service-account*.json
+google-services.json
+GoogleService-Info.plist
+*.pem
+*.p12
+*.mobileprovision
+
+# OS
+.DS_Store
+Thumbs.db
