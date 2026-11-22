@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 
@@ -53,7 +52,6 @@ class _HomePageState extends State<HomePage> {
   final _picker = ImagePicker();
   final _textController = TextEditingController();
   final _titleController = TextEditingController(text: 'New document');
-  final _recognizer = TextRecognizer(script: TextRecognitionScript.latin);
   File? _image;
   bool _processing = false;
   bool _saving = false;
@@ -64,7 +62,6 @@ class _HomePageState extends State<HomePage> {
   void dispose() {
     _textController.dispose();
     _titleController.dispose();
-    _recognizer.close();
     super.dispose();
   }
 
@@ -77,22 +74,55 @@ class _HomePageState extends State<HomePage> {
       _message = null;
       _textController.clear();
     });
+    await _recognizeOnServer(picked.path);
+  }
+
+  Future<void> _recognizeOnServer(String imagePath) async {
+    final user = widget.firebaseReady ? FirebaseAuth.instance.currentUser : null;
+    if (user == null) {
+      if (mounted) {
+        setState(() {
+          _processing = false;
+          _message = 'Sign in to upload this image for server-side OCR.';
+        });
+      }
+      return;
+    }
+
     try {
-      final result = await _recognizer.processImage(InputImage.fromFilePath(picked.path));
+      final token = await user.getIdToken();
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$apiBaseUrl/ocr/recognize'),
+      )
+        ..headers[HttpHeaders.authorizationHeader] = 'Bearer $token'
+        ..files.add(await http.MultipartFile.fromPath('image', imagePath));
+      final streamed = await request.send().timeout(const Duration(seconds: 70));
+      final response = await http.Response.fromStream(streamed);
       if (!mounted) return;
-      setState(() {
-        _textController.text = result.text;
-        _processing = false;
-        _message = result.text.trim().isEmpty
-            ? 'No text found. Try a clearer image with better lighting.'
-            : 'OCR complete. Review and correct the text before saving.';
-      });
+      if (response.statusCode == 200) {
+        final payload = jsonDecode(response.body) as Map<String, dynamic>;
+        final recognizedText = payload['text'] as String? ?? '';
+        setState(() {
+          _textController.text = recognizedText;
+          _processing = false;
+          _message = recognizedText.trim().isEmpty
+              ? 'No text found. Try a clearer image with better lighting.'
+              : 'Server OCR complete. Review and correct the text before saving.';
+        });
+      } else {
+        setState(() {
+          _processing = false;
+          _message = 'Server OCR failed (HTTP ${response.statusCode}). Check the server OCR setup.';
+        });
+      }
     } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _processing = false;
-        _message = 'Could not read this image. Please try another image.';
-      });
+      if (mounted) {
+        setState(() {
+          _processing = false;
+          _message = 'Could not reach the OCR server. Check your connection and API URL.';
+        });
+      }
     }
   }
 
@@ -100,7 +130,7 @@ class _HomePageState extends State<HomePage> {
     final user = widget.firebaseReady ? FirebaseAuth.instance.currentUser : null;
     if (user == null) {
       setState(() => _message =
-          'Offline OCR is ready. Configure Firebase and sign in to save documents to your account.');
+          'Configure Firebase and sign in to use server OCR and save documents to your account.');
       return;
     }
     if (_textController.text.trim().isEmpty) {
@@ -205,7 +235,7 @@ class _HomePageState extends State<HomePage> {
           Text('Scan. Recognize. Review.',
               style: Theme.of(context).textTheme.headlineSmall, textAlign: TextAlign.center),
           const SizedBox(height: 8),
-          const Text('English OCR runs on this device. Images are not uploaded for recognition.',
+          const Text('Images are securely sent to the Smart OCR server for English text recognition.',
               textAlign: TextAlign.center),
           const SizedBox(height: 20),
           Row(
@@ -228,7 +258,7 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 20),
             const LinearProgressIndicator(),
             const SizedBox(height: 8),
-            const Text('Recognizing text on device…', textAlign: TextAlign.center),
+            const Text('Uploading image and recognizing text on server…', textAlign: TextAlign.center),
           ],
           const SizedBox(height: 20),
           TextField(controller: _titleController,
