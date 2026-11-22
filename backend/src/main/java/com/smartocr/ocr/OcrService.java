@@ -39,13 +39,16 @@ public class OcrService {
 
         Path input = null;
         Path errors = null;
+        Path output = null;
         Process process = null;
         try {
             input = Files.createTempFile("smart-ocr-upload-", extension);
             errors = Files.createTempFile("smart-ocr-errors-", ".log");
+            output = Files.createTempFile("smart-ocr-output-", ".txt");
             image.transferTo(input);
             process = new ProcessBuilder(tesseractCommand, input.toString(), "stdout", "-l", "eng", "--psm", "3")
                     .redirectError(errors.toFile())
+                    .redirectOutput(output.toFile())
                     .start();
 
             boolean completed = process.waitFor(PROCESS_TIMEOUT_SECONDS, TimeUnit.SECONDS);
@@ -57,8 +60,7 @@ public class OcrService {
                 throw new OcrProcessingException("The server OCR engine could not process this image. Check server OCR setup.");
             }
 
-            String text = new String(process.getInputStream().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8)
-                    .strip();
+            String text = Files.readString(output, java.nio.charset.StandardCharsets.UTF_8).strip();
             if (text.length() > 100_000) {
                 text = text.substring(0, 100_000);
             }
@@ -75,6 +77,7 @@ public class OcrService {
             }
             deleteQuietly(input);
             deleteQuietly(errors);
+            deleteQuietly(output);
         }
     }
 
