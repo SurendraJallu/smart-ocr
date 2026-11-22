@@ -7,6 +7,57 @@ Java 25 LTS, Spring Boot 3.5.16, PostgreSQL, Flyway and Spring Security OAuth2 R
 - JDK 25
 - Maven 3.6.3+
 - Docker Compose
+- Tesseract OCR (English language data)
+
+## Install Tesseract on Windows (local development)
+
+Install Tesseract for Windows. The standard installer location is:
+
+```text
+C:\Program Files\Tesseract-OCR\tesseract.exe
+```
+
+Make sure the Tesseract installation directory (not the executable file) is included in your Windows `PATH`:
+
+```text
+C:\Program Files\Tesseract-OCR
+```
+
+Open a **new** Command Prompt or PowerShell window and verify the installation:
+
+Command Prompt:
+
+```bat
+where tesseract
+tesseract --version
+tesseract --list-langs
+```
+
+PowerShell:
+
+```powershell
+Get-Command tesseract
+tesseract --version
+tesseract --list-langs
+```
+
+The language list should include `eng`. If `tesseract` is found by these commands, the default backend configuration already works; no machine-specific path needs to be committed to Git.
+
+If Tesseract is not on PATH, configure its executable path for the current terminal session.
+
+Command Prompt:
+
+```bat
+set SMART_OCR_OCR_TESSERACT_COMMAND=C:\Program Files\Tesseract-OCR\tesseract.exe
+```
+
+PowerShell:
+
+```powershell
+$env:SMART_OCR_OCR_TESSERACT_COMMAND = 'C:\Program Files\Tesseract-OCR\tesseract.exe'
+```
+
+The environment variable overrides the default command configured in `application.yml`. Set it in Windows Environment Variables if you need it to persist across terminal sessions.
 
 ## Start PostgreSQL
 
@@ -20,7 +71,7 @@ docker compose -f infra/docker-compose.yml up -d
 
 Set these environment variables to your Firebase project:
 
-```bash
+```text
 FIREBASE_PROJECT_ID=your-firebase-project-id
 FIREBASE_ISSUER_URI=https://securetoken.google.com/your-firebase-project-id
 DATABASE_URL=jdbc:postgresql://localhost:5432/smart_ocr
@@ -31,6 +82,8 @@ DATABASE_PASSWORD=your-local-database-password
 The default `demo-smart-ocr` issuer is only a development placeholder. Configure your own Firebase project before calling authenticated endpoints. The API verifies token signature, issuer and audience. Never trust a client-supplied user ID.
 
 ## Run and test
+
+Run these commands from the `backend` directory:
 
 ```bash
 mvn clean verify
@@ -43,12 +96,22 @@ The API listens on port 8080. `GET /api/v1/health` is public; document endpoints
 
 The authenticated mobile client uploads an image to the server for centralized English OCR. The backend invokes the Tesseract command-line engine and returns recognized text; it does not persist the uploaded image. Temporary upload, output and error files are deleted after processing.
 
-Install Tesseract on the backend host and ensure the executable is available on PATH:
+The executable is configured in `application.yml`:
 
-- Ubuntu/Debian: `sudo apt-get update && sudo apt-get install -y tesseract-ocr tesseract-ocr-eng`
-- Verify: `tesseract --version` and `tesseract --list-langs`
+```yaml
+smart-ocr:
+  ocr:
+    tesseract-command: ${SMART_OCR_OCR_TESSERACT_COMMAND:tesseract}
+```
 
-If the executable is not named `tesseract` or is outside PATH, set the environment variable `SMART_OCR_OCR_TESSERACT_COMMAND` to its executable path.
+This defaults to `tesseract`, which is resolved from the backend process's PATH on Windows and Linux. On a deployed Linux host, install Tesseract and its English language data using the host's package manager; for Ubuntu/Debian:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y tesseract-ocr tesseract-ocr-eng
+tesseract --version
+tesseract --list-langs
+```
 
 Endpoint:
 
