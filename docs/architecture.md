@@ -3,7 +3,7 @@
 ## High-level components
 
 1. **Flutter client (Android/iOS):** camera and gallery import, document preview, crop/rotate, OCR review, and document history UI.
-2. **On-device OCR:** ML Kit English text recognition for an offline-first initial experience.
+2. **Server OCR engine:** Tesseract English recognition runs on the backend. The Flutter client uploads images through an authenticated multipart REST endpoint; optional on-device OCR may be added later as an offline capability.
 3. **Spring Boot API:** authenticated document metadata, processing orchestration, and user-scoped history. Backend baseline: Java 25 LTS and Spring Boot 3.5.16.
 4. **PostgreSQL:** application metadata and extracted fields; avoid storing raw document images in database rows.
 5. **Firebase Authentication:** user identity. The backend must verify Firebase ID tokens; client-side identity alone is not trusted.
@@ -12,10 +12,10 @@
 ## Initial data flow
 
 1. User captures or imports a document.
-2. App preprocesses the image and runs on-device OCR.
-3. App presents recognized text and extracted fields for user review.
-4. With user consent, the app uploads the document and saves metadata/extraction results through the API.
-5. API verifies the Firebase ID token and enforces ownership for every document operation.
+2. App uploads the image to the authenticated OCR endpoint over HTTPS.
+3. API verifies the Firebase ID token, validates the image, applies upload/time limits, and invokes Tesseract on a temporary server-side file.
+4. OCR text is returned to the app for user review; temporary image and engine output files are deleted after processing.
+5. User confirms the text and the app saves extracted text and metadata through the authenticated document API.
 
 ## Document categories
 
@@ -36,9 +36,8 @@ Classification and extracted values are suggestions only. The user must review a
 ## Delivery sequence
 
 1. Repository and build foundations.
-2. Flutter navigation, capture/import, and preview.
-3. OCR integration and review/edit flow.
-4. Spring Boot API, token verification, and PostgreSQL persistence.
+2. Flutter capture/import, preview, authentication, and API client.
+3. Spring Boot API, token verification, PostgreSQL persistence, and server-side OCR.
 5. Private storage and document history.
 6. Document-specific extraction, exports, testing, and release hardening.
 
