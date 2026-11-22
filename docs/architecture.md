@@ -4,7 +4,7 @@
 
 1. **Flutter client (Android/iOS):** camera and gallery import, document preview, crop/rotate, OCR review, and document history UI.
 2. **On-device OCR:** ML Kit English text recognition for an offline-first initial experience.
-3. **Spring Boot API:** authenticated document metadata, processing orchestration, and user-scoped history.
+3. **Spring Boot API:** authenticated document metadata, processing orchestration, and user-scoped history. Backend baseline: Java 25 LTS and Spring Boot 3.5.16.
 4. **PostgreSQL:** application metadata and extracted fields; avoid storing raw document images in database rows.
 5. **Firebase Authentication:** user identity. The backend must verify Firebase ID tokens; client-side identity alone is not trusted.
 6. **Firebase Storage:** private document object storage with user-scoped access rules.
@@ -44,4 +44,4 @@ Classification and extracted values are suggestions only. The user must review a
 
 ## Deployment note
 
-iOS builds and App Store signing require macOS with Xcode and valid Apple developer signing configuration. Android release signing also requires user-managed signing credentials; these must never be committed.
+Use JDK 25 for local backend development, automated builds, and deployment runtime. iOS builds and App Store signing require macOS with Xcode and valid Apple developer signing configuration. Android release signing also requires user-managed signing credentials; these must never be committed.
