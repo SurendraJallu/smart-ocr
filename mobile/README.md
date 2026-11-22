@@ -1,6 +1,6 @@
 # Smart OCR mobile app
 
-Flutter application for Android and iOS. English OCR runs on-device using Google ML Kit.
+Flutter application for Android and iOS. The mobile client uploads images to the authenticated Java backend, where Tesseract performs English OCR.
 
 ## Requirements
 
@@ -36,12 +36,12 @@ flutterfire configure
 
 Add generated `google-services.json` and `GoogleService-Info.plist` locally. Do not commit signing keys or service-account secrets. Enable Email/Password sign-in in Firebase Authentication and configure backend `FIREBASE_PROJECT_ID` and `FIREBASE_ISSUER_URI` to the same project.
 
-Offline image OCR works without Firebase configuration. Saving to the REST API requires a signed-in Firebase user and a backend configured for that same Firebase project.
+Server OCR and document saving require a signed-in Firebase user and a backend configured for that same Firebase project. The backend host must have Tesseract OCR and English language data installed.
 
 ## Current workflow
 
 1. Capture a document with the camera or select an image from the gallery.
-2. Run English OCR locally on the device.
+2. Upload the image to the authenticated backend for English OCR.
 3. Review and edit the recognized text.
 4. Select a document type and title.
 5. Sign in and save reviewed text to the authenticated user's backend record.
