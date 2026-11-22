@@ -8,7 +8,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional
 public class DocumentService {
-
     private final DocumentRepository repository;
 
     public DocumentService(DocumentRepository repository) {
