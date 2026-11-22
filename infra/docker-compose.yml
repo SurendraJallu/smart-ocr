@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: smart-ocr-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: smart_ocr
+      POSTGRES_USER: smart_ocr
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local_dev_change_me}
+    ports:
+      - "5432:5432"
+    volumes:
+      - smart_ocr_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U smart_ocr -d smart_ocr"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  smart_ocr_postgres_data:
