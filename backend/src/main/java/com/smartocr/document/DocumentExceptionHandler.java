@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class DocumentExceptionHandler {
-
     @ExceptionHandler(DocumentNotFoundException.class)
     ResponseEntity<Map<String, String>> notFound(DocumentNotFoundException exception) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "DOCUMENT_NOT_FOUND"));
