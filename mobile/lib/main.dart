@@ -235,7 +235,7 @@ class _HomePageState extends State<HomePage> {
           Text('Scan. Recognize. Review.',
               style: Theme.of(context).textTheme.headlineSmall, textAlign: TextAlign.center),
           const SizedBox(height: 8),
-          const Text('Images are securely sent to the Smart OCR server for English text recognition.',
+          const Text('Images are uploaded to the Smart OCR server for English text recognition.',
               textAlign: TextAlign.center),
           const SizedBox(height: 20),
           Row(
