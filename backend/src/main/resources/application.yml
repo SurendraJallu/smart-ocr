@@ -3,9 +3,30 @@ spring:
     name: smart-ocr-api
   profiles:
     default: local
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/smart_ocr}
+    username: ${DATABASE_USERNAME:smart_ocr}
+    password: ${DATABASE_PASSWORD:local_dev_change_me}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${FIREBASE_ISSUER_URI:https://securetoken.google.com/demo-smart-ocr}
 
 server:
   port: ${SERVER_PORT:8080}
+  error:
+    include-message: never
+
+smart-ocr:
+  firebase:
+    project-id: ${FIREBASE_PROJECT_ID:demo-smart-ocr}
 
 management:
   endpoints:
@@ -17,8 +38,6 @@ management:
       probes:
         enabled: true
 
----
-spring:
-  config:
-    activate:
-      on-profile: local
+logging:
+  level:
+    org.springframework.security: INFO
