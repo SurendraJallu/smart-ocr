@@ -40,10 +40,10 @@ Server OCR and document saving require a signed-in Firebase user and a backend c
 
 ## Current workflow
 
-1. Capture a document with the camera or select an image from the gallery.
-2. Upload the image to the authenticated backend for English OCR.
-3. Review and edit the recognized text.
-4. Select a document type and title.
-5. Sign in and save reviewed text to the authenticated user's backend record.
+1. Configure Firebase and sign in.
+2. Capture a document with the camera or select an image from the gallery.
+3. Upload the image to the authenticated backend for English OCR.
+4. Review and edit the recognized text.
+5. Select a document type and title, then save the reviewed text to the authenticated user's backend record.
 
 PDF import, multipage scanning, crop/rotate controls, document history UI, export, cloud image storage and document-specific field extraction are follow-on modules.
