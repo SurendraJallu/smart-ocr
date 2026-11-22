@@ -9,7 +9,7 @@ Cross-platform document capture and OCR application for Android and iOS.
 - **Database:** PostgreSQL
 - **Authentication:** Firebase Authentication
 - **File storage:** Firebase Storage
-- **OCR:** Google ML Kit Text Recognition (English, on-device initially)
+- **OCR:** Tesseract English OCR on the Java backend (mobile uploads images through an authenticated REST API)
 - **Image processing:** OpenCV (introduced when preprocessing requirements are implemented)
 
 ## Repository layout
@@ -21,7 +21,7 @@ Cross-platform document capture and OCR application for Android and iOS.
 
 ## Getting started
 
-The repository is currently being initialized. See:
+The repository contains the initial Flutter client and Java API development slice. Server OCR is implemented as an authenticated upload endpoint; the remaining product modules are being built incrementally. See:
 
 - [Architecture](docs/architecture.md)
 - [Mobile setup](mobile/README.md)
