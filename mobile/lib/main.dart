@@ -1,72 +1,276 @@
-import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'dart:io';
 
-void main() {
-  runApp(const SmartOcrApp());
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/material.dart';
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
+
+const apiBaseUrl = String.fromEnvironment(
+  'SMART_OCR_API_URL',
+  defaultValue: 'http://10.0.2.2:8080/api/v1',
+);
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  var firebaseReady = false;
+  try {
+    await Firebase.initializeApp();
+    firebaseReady = true;
+  } catch (_) {
+    // Offline OCR remains available without native Firebase configuration.
+  }
+  runApp(SmartOcrApp(firebaseReady: firebaseReady));
 }
 
 class SmartOcrApp extends StatelessWidget {
-  const SmartOcrApp({super.key});
+  const SmartOcrApp({required this.firebaseReady, super.key});
+  final bool firebaseReady;
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Smart OCR',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2457C5)),
-        useMaterial3: true,
-      ),
-      home: const HomePage(),
-    );
-  }
+  Widget build(BuildContext context) => MaterialApp(
+        title: 'Smart OCR',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2457C5)),
+          useMaterial3: true,
+        ),
+        home: HomePage(firebaseReady: firebaseReady),
+      );
 }
 
-class HomePage extends StatelessWidget {
-  const HomePage({super.key});
+class HomePage extends StatefulWidget {
+  const HomePage({required this.firebaseReady, super.key});
+  final bool firebaseReady;
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  final _picker = ImagePicker();
+  final _textController = TextEditingController();
+  final _titleController = TextEditingController(text: 'New document');
+  final _recognizer = TextRecognizer(script: TextRecognitionScript.latin);
+  File? _image;
+  bool _processing = false;
+  bool _saving = false;
+  String? _message;
+  String _documentType = 'GENERAL';
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    _titleController.dispose();
+    _recognizer.close();
+    super.dispose();
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    final picked = await _picker.pickImage(source: source, imageQuality: 95);
+    if (picked == null || !mounted) return;
+    setState(() {
+      _image = File(picked.path);
+      _processing = true;
+      _message = null;
+      _textController.clear();
+    });
+    try {
+      final result = await _recognizer.processImage(InputImage.fromFilePath(picked.path));
+      if (!mounted) return;
+      setState(() {
+        _textController.text = result.text;
+        _processing = false;
+        _message = result.text.trim().isEmpty
+            ? 'No text found. Try a clearer image with better lighting.'
+            : 'OCR complete. Review and correct the text before saving.';
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _processing = false;
+        _message = 'Could not read this image. Please try another image.';
+      });
+    }
+  }
+
+  Future<void> _saveDocument() async {
+    final user = widget.firebaseReady ? FirebaseAuth.instance.currentUser : null;
+    if (user == null) {
+      setState(() => _message =
+          'Offline OCR is ready. Configure Firebase and sign in to save documents to your account.');
+      return;
+    }
+    if (_textController.text.trim().isEmpty) {
+      setState(() => _message = 'There is no recognized text to save.');
+      return;
+    }
+    setState(() {
+      _saving = true;
+      _message = null;
+    });
+    try {
+      final token = await user.getIdToken();
+      final response = await http.post(
+        Uri.parse('$apiBaseUrl/documents'),
+        headers: {
+          HttpHeaders.authorizationHeader: 'Bearer $token',
+          HttpHeaders.contentTypeHeader: 'application/json',
+        },
+        body: jsonEncode({
+          'title': _titleController.text.trim().isEmpty
+              ? 'Untitled document'
+              : _titleController.text.trim(),
+          'documentType': _documentType,
+          'extractedText': _textController.text,
+          'status': 'REVIEW_REQUIRED',
+        }),
+      );
+      if (!mounted) return;
+      setState(() => _message = response.statusCode == 201
+          ? 'Document saved to your account.'
+          : 'Could not save document (HTTP ${response.statusCode}). Check API configuration.');
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _message = 'Could not reach the API. Check the server URL and connection.');
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _signIn() async {
+    final email = TextEditingController();
+    final password = TextEditingController();
+    final accepted = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Sign in'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: email, keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(labelText: 'Email')),
+            TextField(controller: password, obscureText: true,
+                decoration: const InputDecoration(labelText: 'Password')),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Continue')),
+        ],
+      ),
+    );
+    if (accepted == true) {
+      try {
+        await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: email.text.trim(),
+          password: password.text,
+        );
+        if (mounted) setState(() => _message = 'Signed in successfully.');
+      } on FirebaseAuthException catch (error) {
+        if (mounted) setState(() => _message = error.message ?? 'Sign-in failed.');
+      }
+    }
+    email.dispose();
+    password.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final user = widget.firebaseReady ? FirebaseAuth.instance.currentUser : null;
     return Scaffold(
-      appBar: AppBar(title: const Text('Smart OCR')),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+      appBar: AppBar(
+        title: const Text('Smart OCR'),
+        actions: [
+          if (user != null)
+            IconButton(
+              tooltip: 'Sign out',
+              onPressed: () async {
+                await FirebaseAuth.instance.signOut();
+                if (mounted) setState(() => _message = 'Signed out.');
+              },
+              icon: const Icon(Icons.logout),
+            )
+          else
+            TextButton(onPressed: widget.firebaseReady ? _signIn : null, child: const Text('Sign in')),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          const Icon(Icons.document_scanner_outlined, size: 64),
+          const SizedBox(height: 12),
+          Text('Scan. Recognize. Review.',
+              style: Theme.of(context).textTheme.headlineSmall, textAlign: TextAlign.center),
+          const SizedBox(height: 8),
+          const Text('English OCR runs on this device. Images are not uploaded for recognition.',
+              textAlign: TextAlign.center),
+          const SizedBox(height: 20),
+          Row(
             children: [
-              const Icon(Icons.document_scanner_outlined, size: 72),
-              const SizedBox(height: 16),
-              Text(
-                'Your documents, searchable.',
-                style: Theme.of(context).textTheme.headlineSmall,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Capture or import a document to extract text.',
-                style: Theme.of(context).textTheme.bodyMedium,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              FilledButton.icon(
-                onPressed: null,
-                icon: const Icon(Icons.camera_alt_outlined),
-                label: const Text('Capture document'),
-              ),
-              const SizedBox(height: 8),
-              OutlinedButton.icon(
-                onPressed: null,
-                icon: const Icon(Icons.photo_library_outlined),
-                label: const Text('Choose from gallery'),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Capture and OCR features are added in the next development step.',
-                textAlign: TextAlign.center,
-              ),
+              Expanded(child: FilledButton.icon(
+                onPressed: _processing ? null : () => _pickImage(ImageSource.camera),
+                icon: const Icon(Icons.camera_alt_outlined), label: const Text('Camera'))),
+              const SizedBox(width: 12),
+              Expanded(child: OutlinedButton.icon(
+                onPressed: _processing ? null : () => _pickImage(ImageSource.gallery),
+                icon: const Icon(Icons.photo_library_outlined), label: const Text('Gallery'))),
             ],
           ),
-        ),
+          if (_image != null) ...[
+            const SizedBox(height: 20),
+            ClipRRect(borderRadius: BorderRadius.circular(12),
+                child: Image.file(_image!, height: 220, fit: BoxFit.contain)),
+          ],
+          if (_processing) ...[
+            const SizedBox(height: 20),
+            const LinearProgressIndicator(),
+            const SizedBox(height: 8),
+            const Text('Recognizing text on device…', textAlign: TextAlign.center),
+          ],
+          const SizedBox(height: 20),
+          TextField(controller: _titleController,
+              decoration: const InputDecoration(labelText: 'Document title', border: OutlineInputBorder())),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            value: _documentType,
+            decoration: const InputDecoration(labelText: 'Document type', border: OutlineInputBorder()),
+            items: const [
+              DropdownMenuItem(value: 'GENERAL', child: Text('General')),
+              DropdownMenuItem(value: 'AADHAAR', child: Text('Aadhaar')),
+              DropdownMenuItem(value: 'PAN', child: Text('PAN')),
+              DropdownMenuItem(value: 'MARKSHEET', child: Text('Marksheet')),
+              DropdownMenuItem(value: 'VEHICLE_RC', child: Text('Vehicle RC')),
+              DropdownMenuItem(value: 'PRESCRIPTION', child: Text('Prescription')),
+            ],
+            onChanged: (value) => setState(() => _documentType = value ?? 'GENERAL'),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _textController, minLines: 8, maxLines: 16,
+            decoration: const InputDecoration(
+              labelText: 'Recognized text — review and edit',
+              alignLabelWithHint: true, border: OutlineInputBorder()),
+          ),
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            onPressed: _saving || _processing ? null : _saveDocument,
+            icon: _saving
+                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.cloud_upload_outlined),
+            label: Text(_saving ? 'Saving…' : 'Save to my documents'),
+          ),
+          if (_message != null) ...[
+            const SizedBox(height: 12),
+            Text(_message!, textAlign: TextAlign.center),
+          ],
+          const SizedBox(height: 12),
+          const Text(
+            'OCR can make mistakes. Verify all extracted values yourself, especially identity and medical information.',
+            style: TextStyle(fontSize: 12), textAlign: TextAlign.center),
+        ],
       ),
     );
   }
