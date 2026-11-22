@@ -1,11 +1,11 @@
 # Backend API
 
-This directory is reserved for the Java Spring Boot REST API.
+This directory contains the Java Spring Boot REST API.
 
-## Planned baseline
+## Standardized build baseline
 
-- Java 21
-- Spring Boot 3.x
+- Java 25 (LTS)
+- Spring Boot 3.5.16
 - Maven
 - Spring Web and Bean Validation
 - Spring Security with Firebase ID-token verification
@@ -13,6 +13,8 @@ This directory is reserved for the Java Spring Boot REST API.
 - PostgreSQL
 - Flyway database migrations
 - Actuator health endpoints
+
+Use a Java 25 distribution such as Eclipse Temurin 25 for local development and CI. Ensure Maven itself runs on JDK 25; check both java -version and mvn -version.
 
 ## Responsibilities
 
@@ -26,4 +28,6 @@ This directory is reserved for the Java Spring Boot REST API.
 
 Use environment variables for database credentials and Firebase verification configuration. Never commit secrets or production service-account keys.
 
-The API contract and executable Spring Boot module will be added in the backend implementation step.
+Run backend tests from this directory:
+
+    mvn clean verify
