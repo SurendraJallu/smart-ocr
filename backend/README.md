@@ -1,33 +1,61 @@
-# Backend API
+# Smart OCR backend
 
-This directory contains the Java Spring Boot REST API.
+Java 25 LTS, Spring Boot 3.5.16, PostgreSQL, Flyway and Spring Security OAuth2 Resource Server.
 
-## Standardized build baseline
+## Requirements
 
-- Java 25 (LTS)
-- Spring Boot 3.5.16
-- Maven
-- Spring Web and Bean Validation
-- Spring Security with Firebase ID-token verification
-- Spring Data JPA
-- PostgreSQL
-- Flyway database migrations
-- Actuator health endpoints
+- JDK 25
+- Maven 3.6.3+
+- Docker Compose
 
-Use a Java 25 distribution such as Eclipse Temurin 25 for local development and CI. Ensure Maven itself runs on JDK 25; check both java -version and mvn -version.
+## Start PostgreSQL
 
-## Responsibilities
+From the repository root:
 
-- Verify Firebase ID tokens on protected endpoints.
-- Enforce user ownership for all document records and operations.
-- Persist document metadata and user-confirmed extracted fields.
-- Coordinate private object storage access.
-- Provide paginated document history and export metadata.
+```bash
+docker compose -f infra/docker-compose.yml up -d
+```
 
-## Local configuration
+## Configure Firebase token verification
 
-Use environment variables for database credentials and Firebase verification configuration. Never commit secrets or production service-account keys.
+Set these environment variables to your Firebase project:
 
-Run backend tests from this directory:
+```bash
+FIREBASE_PROJECT_ID=your-firebase-project-id
+FIREBASE_ISSUER_URI=https://securetoken.google.com/your-firebase-project-id
+DATABASE_URL=jdbc:postgresql://localhost:5432/smart_ocr
+DATABASE_USERNAME=smart_ocr
+DATABASE_PASSWORD=your-local-database-password
+```
 
-    mvn clean verify
+The default `demo-smart-ocr` issuer is only a development placeholder. Configure your own Firebase project before calling authenticated endpoints. The API verifies token signature, issuer and audience. Never trust a client-supplied user ID.
+
+## Run and test
+
+```bash
+mvn clean verify
+mvn spring-boot:run
+```
+
+The API listens on port 8080. `GET /api/v1/health` is public; document endpoints require a valid Firebase ID token in `Authorization: Bearer <id-token>`.
+
+## Document API
+
+- `POST /api/v1/documents` — create a document record
+- `GET /api/v1/documents` — list the signed-in user's documents
+- `GET /api/v1/documents/{id}` — retrieve one owned document
+- `PUT /api/v1/documents/{id}` — update reviewed OCR text and status
+- `DELETE /api/v1/documents/{id}` — delete an owned record
+
+Example request body:
+
+```json
+{
+  "title": "Scanned document",
+  "documentType": "GENERAL",
+  "extractedText": "Text recognized by on-device OCR",
+  "status": "REVIEW_REQUIRED"
+}
+```
+
+OCR output is untrusted and must be reviewed by the user. This API stores extracted text and metadata only; binary image storage, retention workflows, audit logging, and production monitoring remain follow-on release tasks. Do not send real identity or medical documents to an unconfigured development environment.
