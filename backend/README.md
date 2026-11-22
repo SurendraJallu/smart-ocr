@@ -39,6 +39,31 @@ mvn spring-boot:run
 
 The API listens on port 8080. `GET /api/v1/health` is public; document endpoints require a valid Firebase ID token in `Authorization: Bearer <id-token>`.
 
+## Server-side OCR API
+
+The authenticated mobile client uploads an image to the server for centralized English OCR. The backend invokes the Tesseract command-line engine and returns recognized text; it does not persist the uploaded image. Temporary upload, output and error files are deleted after processing.
+
+Install Tesseract on the backend host and ensure the executable is available on PATH:
+
+- Ubuntu/Debian: `sudo apt-get update && sudo apt-get install -y tesseract-ocr tesseract-ocr-eng`
+- Verify: `tesseract --version` and `tesseract --list-langs`
+
+If the executable is not named `tesseract` or is outside PATH, set `SMART_OCR_OCR_TESSERACT_COMMAND`? The Spring property is `smart-ocr.ocr.tesseract-command`; configure it with `SMART_OCR_OCR_TESSERACT_COMMAND` only if your deployment maps that environment variable, or override the property directly.
+
+Endpoint:
+
+- `POST /api/v1/ocr/recognize` — authenticated multipart request with image field named `image`; supports JPEG, PNG, TIFF and BMP up to 10 MB. Returns `text`, `language` and `engine`.
+
+Example:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/ocr/recognize \
+  -H "Authorization: Bearer <firebase-id-token>" \
+  -F "image=@./sample-document.jpg"
+```
+
+The OCR endpoint is authenticated and processes images temporarily on the server. Use HTTPS in deployed environments. Add malware scanning, request throttling, isolated OCR workers and production observability before exposing it publicly.
+
 ## Document API
 
 - `POST /api/v1/documents` — create a document record
@@ -53,9 +78,9 @@ Example request body:
 {
   "title": "Scanned document",
   "documentType": "GENERAL",
-  "extractedText": "Text recognized by on-device OCR",
+  "extractedText": "Text recognized by server-side OCR",
   "status": "REVIEW_REQUIRED"
 }
 ```
 
-OCR output is untrusted and must be reviewed by the user. This API stores extracted text and metadata only; binary image storage, retention workflows, audit logging, and production monitoring remain follow-on release tasks. Do not send real identity or medical documents to an unconfigured development environment.
+OCR output is untrusted and must be reviewed by the user. The document API stores extracted text and metadata only. Original images are currently processed temporarily for OCR and are not retained. Binary image storage, retention workflows, audit logging, and production monitoring remain follow-on release tasks. Do not send real identity or medical documents to an unconfigured development environment.
