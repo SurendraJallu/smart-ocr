@@ -31,6 +31,8 @@ server:
 smart-ocr:
   firebase:
     project-id: ${FIREBASE_PROJECT_ID:demo-smart-ocr}
+  ocr:
+    tesseract-command: ${SMART_OCR_OCR_TESSERACT_COMMAND:tesseract}
 
 management:
   endpoints:
