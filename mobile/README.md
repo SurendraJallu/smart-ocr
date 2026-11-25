@@ -24,28 +24,22 @@ flutter run
 To build a local Android debug APK:
 
 ```powershell
-flutter build apk --debug --dart-define=SMART_OCR_API_URL=http://10.0.2.2:8080/api/v1
+flutter build apk --debug --dart-define=SMART_OCR_API_URL=http://10.0.2.2:8081/api/v1
 ```
 
 The APK is created at:
 
 ```text
-build\app\outputs\flutter-apk\app-debug.apk
+build\\app\\outputs\\flutter-apk\\app-debug.apk
 ```
 
 If platform folders already exist, do not regenerate them. For a physical Android device, use your computer's reachable LAN IP instead of `10.0.2.2`:
 
 ```powershell
-flutter run --dart-define=SMART_OCR_API_URL=http://YOUR_COMPUTER_LAN_IP:8080/api/v1
+flutter run --dart-define=SMART_OCR_API_URL=http://YOUR_COMPUTER_LAN_IP:8081/api/v1
 ```
 
-The default API URL `http://10.0.2.2:8080/api/v1` is for the Android emulator. iOS simulator can use `http://127.0.0.1:8080/api/v1`. Use HTTPS for deployed environments.
-
-## Download the CI demo APK
-
-The Mobile CI workflow builds a debug APK after analysis and tests pass, then uploads it as the `smart-ocr-android-demo` artifact on the GitHub Actions run. Download and unzip that artifact to get `app-debug.apk`.
-
-This CI APK is a demo build, not a Play Store release. It uses the Android emulator API URL. For a physical device, build locally with your computer's LAN IP as shown above.
+The default API URL is `http://10.0.2.2:8081/api/v1` for the Android emulator. iOS simulator can use `http://127.0.0.1:8081/api/v1`. Use HTTPS for deployed environments.
 
 ## Firebase Authentication setup
 
